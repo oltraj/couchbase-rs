@@ -1,5 +1,114 @@
 # Release Notes
 
+## 3.3.10 (2023-10-10)
+
+* CCBC-1616: apply wait_for_config check for all pipelines. Previously, the lcb_wait function would wait for the pending configuration updates, but don't do it if the 
+  configuration update operation is being retried for some reason. Now, the operation also will not wait for pending configuration updates, and rather return from 
+  lcb_wait as soon as the operation completes. The old behaviour still works when wait_for_config=true is passed in connection string (or LCB_CNTL_WAIT_FOR_CONFIG set to 
+  non-zero value), in this case the library will wait for the configuration. This setting does not affect the mode, when the event loop is executed by the application, 
+  and without lcb_wait.
+
+## 3.3.9 (2023-09-20)
+
+* CCBC-1608: reduce timeout for idle HTTP connections to 1 second
+
+* CCBC-1615: handle rate limit codes during bootstrap
+
+* CCBC-1612: Improve recovery time during rebalance for upcoming Server 7.6.
+
+  - do not throttle CCCP provider in faster failover mode.
+  - try to refresh configuration in case of network errors to speed up the recovery process during failover.
+    
+* CCBC-1611: Handle 0x0d (ECONFIG_ONLY) status code. Treat this status code as a signal to refresh configuration. The new or failed over nodes are set into config-only 
+  mode, where all data operatios will be failed with code 0x0d. It is possible that the SDK might be using stale configuration and send requests to the node, that is not 
+  part of the cluster anymore, so to work around this, the library will update the configuration and retry the operation.
+
+* CCBC-1610: Fix memory issues when setting collection id in the cluster with mixed server versions, where some of the nodes do not support collections.
+
+## 3.3.8 (2023-08-16)
+
+* CCBC-1584: Update documentation on how to use collections with pillowfight
+
+* CCBC-1607: Fix collection id encoding in mixed cluster
+
+* CCBC-1602: Implement Faster Failover.
+
+  This implements the set of protocol optimizations that help the SDK to save network traffic when tracking cluster topology. The feature will be only activated if the 
+  server supports it (7.6+).
+
+* CCBC-1603: Do not log if logger is not accessible in iotssl_log_errors.
+
+* CCBC-1599: Account NUL-byte when format IPv6 address (fixes potential invalid memory access).
+
+## 3.3.7 (2023-05-11)
+
+* CCBC-1596: replace unsafe sprintf with snprintf.
+
+* CCBC-1597: Update threading example, reduce global state.
+
+  - Json::Reader uses static global variable, this patch replaces calls to it with Json::CharReaderBuilder, which is re-entrant.
+
+  - Constants for tracing system defined as mutable static strings, this patch replaces it with const static strings.
+
+  - Updated examples for thread-safe usage is updated to SDK3 API and added them to the build pipeline
+
+## 3.3.6 (2023-04-26)
+
+* CCBC-1590: Always pick random node for HTTP services.
+
+  It helps with certain edge cases, when the application might spawn a lot of processes, perform queries, so that first queries will be directed to the same node due to 
+  the absense of srand() call in the library.
+
+* CCBC-1596: Fix various compiler warnings.
+
+* CCBC-1592: Allow to generate more randomized bodies in pillowfight
+
+  By default cbc-pillowfight pre-generates only one document body per selected size. New option --random-body-pool-size allows to control how many documents will be 
+  generated (default is 100).
+
+  This fixes behaviour in the corner case when --min-size equals --max-size and allow still have many random bodies in this case.
+
+* CCBC-1595: Fix building of the subdocument operation when --subdoc switch for pillowfight was used.
+
+  pillowfight: use separate exptime switch for GET
+
+  Do not share the same value of expiry for get operations. Also it does not turn GET into GET_WITH_TOUCH if the --get-expiry is not being used.
+
+## 3.3.5 (2023-03-09)
+
+* CCBC-1545: handle LCB_ERR_REQUEST_CANCELED in ping callback
+
+  If the instance is being destroyed, while the operations in flight, all these operations will be cancelled with error code LCB_ERR_REQUEST_CANCELED. Ping implementation 
+  should handle this error code and don't assume any of the objects (except response) be in valid state.
+
+* CCBC-1586: force SASL PLAIN for TLS connections
+
+* CCBC-1589: apply authenticator when passed to lcb_create
+
+* CCBC-1585: fix build for gcc-13
+
+* CCBC-1587: allow to disable uninstall target
+
+## 3.3.4 (2023-02-08)
+
+* CCBC-1583: disable collections support if KV does not ack it.
+
+## 3.3.3 (2022-09-09)
+
+* CCBC-1565: load system CAs when the trust certificate is not provided
+
+  When the user has not set any root ca provider but is using TLS then we should trust both the system store and the Capella root CA.
+
+* CCBC-1564: update error message for authentication failure
+
+* CCBC-1568: skip logging for closed SSL IO contexts
+
+  OpenSSL might still invoke IO callbacks after the actual context has been closed. This more likely could happen with libuv-style IO.
+
+  This patch ensures that once socket context has been closed, its pointer in SSL object will be erased.
+
+  Added cbc-bucket-list command to list all buckets.
+
 ## 3.2.3 (2021-10-20)
 
 * CCBC-1484: Fixed tracing tags in accordance to RFC.
